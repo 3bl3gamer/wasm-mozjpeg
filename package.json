@@ -1,0 +1,19 @@
+{
+  "name": "wasm-mozjpeg",
+  "version": "1.0.0",
+  "description": "WebAssembly MozJPEG encoder",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/3bl3gamer/wasm-mozjpeg.git"
+  },
+  "type": "module",
+  "main": "index.js",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "3bl3gamer",
+  "license": "MIT"
+}
