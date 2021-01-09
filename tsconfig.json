@@ -1,12 +1,15 @@
 {
 	"compilerOptions": {
+		"allowJs": true,
 		"checkJs": true,
+		"noEmit": true,
 		"strictNullChecks": true,
 		"strictFunctionTypes": true,
 		"strictBindCallApply": true,
 		"strictPropertyInitialization": true,
-		"target": "es2020",
-		"module": "es2020"
+		"target": "esnext",
+		"module": "esnext",
+		"moduleResolution": "node"
 	},
-	"exclude": ["node_modules", "mozjpeg", "mozjpeg_", "old"]
+	"exclude": ["node_modules", "mozjpeg"]
 }

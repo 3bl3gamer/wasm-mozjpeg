@@ -1,4 +1,4 @@
-import { compressSimpleRGBA, loadModule } from '../index.js'
+import { compressSimpleRGBA, loadWebModule } from '../index.js'
 
 const anyWindow = /** @type {*} */ (window)
 const logBox = /** @type {HTMLPreElement} */ (anyWindow.logBox)
@@ -18,7 +18,7 @@ async function generate() {
 	mozjpegResultImg.src = ''
 	canvasResultImg.src = ''
 
-	const mozJpeg = await loadModule()
+	const mozJpeg = await loadWebModule()
 	const quality = parseInt(new FormData(configForm).get('quality') + '')
 
 	log('generaing image buffer...')
@@ -80,6 +80,8 @@ async function generate() {
 	const canvasStt = Date.now()
 	canvas.toBlob(
 		blob => {
+			if (blob === null) throw new Error('canvas.toBlob returned null, this should not happen')
+
 			const elapsed = Date.now() - canvasStt
 			log(`done, ${elapsed}ms, ${(blob.size / 1024).toFixed(1)}KiB`)
 

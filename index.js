@@ -1,6 +1,8 @@
 import { JCS_EXT_RGBA } from './const.js'
 import { getString, putString, simpleSprintf, simpleSscanf } from './utils.js'
 
+export * from './const.js'
+
 const stdoutPtr = 1
 const stderrPtr = 2
 const outImgFilePtr = 10042
@@ -8,15 +10,14 @@ const outImgFilePtr = 10042
 /** @typedef {number} Pointer */
 
 /**
- * @typedef {Object} MozJpeg
+ * @typedef {Object} MozJPEG
  * @prop {WebAssembly.Instance} instance
  * @prop {WebAssembly.Memory} memory
- * @prop {(start:number, length:number) => Uint8Array} getMemoryUint8View
- * @prop {(start:number, length:number) => void} onImgChunk
+ * @prop {(start:Pointer, length:number) => Uint8Array} getMemoryUint8View
+ * @prop {(start:Pointer, length:number) => void} onImgChunk
  * @prop {(width:number, height:number, in_color_space:number, channels:number) => Pointer} init_compress
  * @prop {(value:number) => void} cinfo_set_quant_table
  * @prop {(value:boolean) => void} cinfo_set_optimize_coding
- * prop {(value:boolean) => void} cinfo_set_arithmetic
  * @prop {(value:number) => void} cinfo_set_smoothing_factor
  * @prop {(num_loops:number, use_multipass:boolean, optimize_zero_blocks:boolean, optimize_table:boolean) => void} cinfo_set_trellis
  * @prop {(luma_quality:number, chroma_quality:number) => void} cinfo_set_quality
@@ -27,7 +28,33 @@ const outImgFilePtr = 10042
  * @prop {() => void} finish_compress
  */
 
-export async function loadModule() {
+/**
+ * @returns {Promise<MozJPEG>}
+ */
+export function loadWebModule() {
+	return loadModule(importObject => {
+		const filepath = new URL('mozjpeg.wasm', import.meta.url).pathname
+		return WebAssembly.instantiateStreaming(fetch(filepath), importObject)
+	})
+}
+
+/**
+ * @typedef {{promises:{readFile(fpath:string):Promise<Buffer>}}} ReadableFS
+ * @param {Promise<ReadableFS> | ReadableFS} fs
+ * @returns {Promise<MozJPEG>}
+ */
+export function loadNodeModule(fs) {
+	return loadModule(async importObject => {
+		const filepath = new URL('mozjpeg.wasm', import.meta.url).pathname
+		return WebAssembly.instantiate(await (await fs).promises.readFile(filepath), importObject)
+	})
+}
+
+/**
+ * @param {(importObject:Object) => Promise<WebAssembly.WebAssemblyInstantiatedSource>} loadFunc
+ * @returns {Promise<MozJPEG>}
+ */
+export async function loadModule(loadFunc) {
 	function onPrint(filePtr, string) {
 		if (filePtr === stdoutPtr) console.warn(string)
 		else if (filePtr === stderrPtr) console.error(string)
@@ -100,14 +127,7 @@ export async function loadModule() {
 		},
 	}
 
-	const filepath = new URL('mozjpeg.wasm', import.meta.url).pathname
-	const { instance } =
-		typeof process !== 'undefined' && process.release.name === 'node'
-			? await WebAssembly.instantiate(
-					await (await import('fs')).promises.readFile(filepath),
-					importObject,
-			  )
-			: await WebAssembly.instantiateStreaming(fetch(filepath), importObject)
+	const { instance } = await loadFunc(importObject)
 	const exports = instance.exports
 	const memory = /** @type {WebAssembly.Memory} */ (exports.memory)
 	let memBuf = new Uint8Array(memory.buffer)
@@ -116,7 +136,7 @@ export async function loadModule() {
 		return new Uint8Array(memory.buffer, start, length)
 	}
 
-	const mozJpeg = /** @type {MozJpeg} */ ({ instance, memory, getMemoryUint8View })
+	const mozJpeg = /** @type {MozJPEG} */ ({ instance, memory, getMemoryUint8View })
 	for (const attr in exports) if (typeof exports[attr] === 'function') mozJpeg[attr] = exports[attr]
 	return mozJpeg
 }
@@ -126,7 +146,7 @@ export async function loadModule() {
  */
 
 /**
- * @param {MozJpeg} mozJpeg
+ * @param {MozJPEG} mozJpeg
  * @param {number} w
  * @param {number} h
  * @param {number} inColorSpace
@@ -144,7 +164,7 @@ export function initCompressSimple(mozJpeg, w, h, inColorSpace, channels) {
 }
 
 /**
- * @param {MozJpeg} mozJpeg
+ * @param {MozJPEG} mozJpeg
  * @param {BufferLocation} rowBufLocation
  * @param {Uint8Array|Uint8ClampedArray} pixBuf
  * @param {number} h
@@ -159,7 +179,7 @@ export function writeRowsSimple(mozJpeg, rowBufLocation, pixBuf, h, rowStride) {
 }
 
 /**
- * @param {MozJpeg} mozJpeg
+ * @param {MozJPEG} mozJpeg
  * @param {number} w
  * @param {number} h
  * @param {number} quality
