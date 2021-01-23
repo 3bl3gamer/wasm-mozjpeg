@@ -62,6 +62,12 @@ void *init_compress(int width, int height, int in_color_space, int channels)
 }
 
 EMSCRIPTEN_KEEPALIVE
+void cinfo_set_out_color_space(int value)
+{
+	jpeg_set_colorspace(&cinfo, value);
+}
+
+EMSCRIPTEN_KEEPALIVE
 void cinfo_set_quant_table(int value)
 {
 	jpeg_c_set_int_param(&cinfo, JINT_BASE_QUANT_TBL_IDX, value);

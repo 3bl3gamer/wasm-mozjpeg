@@ -1,3 +1,4 @@
+import { JCS_CMYK, JCS_YCbCr, JCS_YCCK } from './const.js'
 import { JCS_EXT_RGBA } from './const.js'
 import { getString, putString, simpleSprintf, simpleSscanf } from './utils.js'
 
@@ -9,13 +10,17 @@ const outImgFilePtr = 10042
 
 /** @typedef {number} Pointer */
 
+/** @typedef {import('./const').JCS_GRAYSCALE | import('./const').JCS_RGB | import('./const').JCS_YCbCr | import('./const').JCS_CMYK | import('./const').JCS_YCCK} OutColorSpace */
+/** @typedef {import('./const').JCS_GRAYSCALE | import('./const').JCS_RGB | import('./const').JCS_YCbCr | import('./const').JCS_CMYK | import('./const').JCS_YCCK | import('./const').JCS_EXT_RGB | import('./const').JCS_EXT_BGR | import('./const').JCS_EXT_RGBA | import('./const').JCS_EXT_BGRA | import('./const').JCS_EXT_ABGR | import('./const').JCS_EXT_ARGB} InColorSpace */
+
 /**
  * @typedef {Object} MozJPEG
  * @prop {WebAssembly.Instance} instance
  * @prop {WebAssembly.Memory} memory
  * @prop {(start:Pointer, length:number) => Uint8Array} getMemoryUint8View
  * @prop {(start:Pointer, length:number) => void} onImgChunk
- * @prop {(width:number, height:number, in_color_space:number, channels:number) => Pointer} init_compress
+ * @prop {(width:number, height:number, in_color_space:InColorSpace, channels:number) => Pointer} init_compress
+ * @prop {(value:OutColorSpace) => void} cinfo_set_out_color_space
  * @prop {(value:number) => void} cinfo_set_quant_table
  * @prop {(value:boolean) => void} cinfo_set_optimize_coding
  * @prop {(value:number) => void} cinfo_set_smoothing_factor
@@ -149,7 +154,7 @@ export async function loadModule(loadFunc) {
  * @param {MozJPEG} mozJpeg
  * @param {number} w
  * @param {number} h
- * @param {number} inColorSpace
+ * @param {InColorSpace} inColorSpace
  * @param {number} channels
  * @returns {{rowBufLocation:BufferLocation, imgChunks:ArrayBuffer[]}}
  */
@@ -169,6 +174,7 @@ export function initCompressSimple(mozJpeg, w, h, inColorSpace, channels) {
  * @param {Uint8Array|Uint8ClampedArray} pixBuf
  * @param {number} h
  * @param {number} rowStride
+ * @returns {void}
  */
 export function writeRowsSimple(mozJpeg, rowBufLocation, pixBuf, h, rowStride) {
 	for (let i = 0; i < h; i++) {
@@ -190,8 +196,9 @@ export function compressSimpleRGBA(mozJpeg, w, h, quality, pixBuf) {
 	const channels = 4
 	let { rowBufLocation, imgChunks } = initCompressSimple(mozJpeg, w, h, JCS_EXT_RGBA, channels)
 
+	// mozJpeg.cinfo_set_out_color_space(JCS_YCCK)
 	// mozJpeg.cinfo_set_quant_table(8)
-	mozJpeg.cinfo_set_quality(quality, 1)
+	mozJpeg.cinfo_set_quality(quality, -1)
 	// mozJpeg.cinfo_set_optimize_coding(false)
 	// mozJpeg.cinfo_set_chroma_subsample(1, 2)
 	// mozJpeg.cinfo_set_smoothing_factor(1)
