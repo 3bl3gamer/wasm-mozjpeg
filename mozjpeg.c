@@ -127,9 +127,12 @@ void cinfo_set_chroma_subsample(int h_samp_factor, int v_samp_factor)
 }
 
 EMSCRIPTEN_KEEPALIVE
-void cinfo_set_simple_progression()
+void cinfo_disable_progression()
 {
-	jpeg_simple_progression(&cinfo);
+	// enabled by default (cinfo->master->compress_profile == JCP_MAX_COMPRESSION)
+	// jpeg_simple_progression(&cinfo);
+	cinfo.num_scans = 0;
+	cinfo.scan_info = NULL;
 }
 
 EMSCRIPTEN_KEEPALIVE

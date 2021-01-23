@@ -27,7 +27,7 @@ const outImgFilePtr = 10042
  * @prop {(num_loops:number, use_multipass:boolean, optimize_zero_blocks:boolean, optimize_table:boolean) => void} cinfo_set_trellis
  * @prop {(luma_quality:number, chroma_quality:number) => void} cinfo_set_quality
  * @prop {(h_samp_factor:number, v_samp_factor:number) => void} cinfo_set_chroma_subsample
- * @prop {() => void} cinfo_set_simple_progression
+ * @prop {() => void} cinfo_disable_progression
  * @prop {() => void} start_compress
  * @prop {() => boolean} write_scanlines
  * @prop {() => void} finish_compress
@@ -202,7 +202,7 @@ export function compressSimpleRGBA(mozJpeg, w, h, quality, pixBuf) {
 	// mozJpeg.cinfo_set_optimize_coding(false)
 	// mozJpeg.cinfo_set_chroma_subsample(1, 2)
 	// mozJpeg.cinfo_set_smoothing_factor(1)
-	// mozJpeg.cinfo_set_simple_progression()
+	// mozJpeg.cinfo_disable_progression()
 	// mozJpeg.cinfo_set_trellis(5, true, true, true)
 
 	mozJpeg.start_compress()
