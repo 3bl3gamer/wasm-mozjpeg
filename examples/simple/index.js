@@ -1,4 +1,4 @@
-import { compressSimpleRGBA, loadWebModule } from '../index.js'
+import { compressSimpleRGBA, loadWebModule } from '../../index.js'
 
 const anyWindow = /** @type {*} */ (window)
 const logBox = /** @type {HTMLPreElement} */ (anyWindow.logBox)

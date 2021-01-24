@@ -1,0 +1,135 @@
+<html>
+	<head>
+		<title>WASM-MozJPEG settings example</title>
+		<meta charset="utf-8" />
+		<style>
+			.dim {
+				color: darkgray
+			}
+
+			.hidden {
+				display: none;
+			}
+
+			fieldset>fieldset {
+				padding: 1px 0 0 11px;
+				border-bottom: none;
+				border-right: none;
+			}
+
+			#configForm input[type="submit"] {
+				margin-top: 8px;
+			}
+
+			#inputFileComment {
+				white-space: nowrap;
+			}
+
+			#samplesTabList {
+				display: inline-block;
+			}
+
+			#samplesTabList button.selected {
+				font-weight: bold;
+			}
+
+			@media (min-width: 640px) {
+				#configForm {
+					display: flex;
+					flex-wrap: wrap;
+					flex-direction: column;
+					align-content: space-around;
+					max-height: 320px;
+				}
+
+				#configForm>fieldset {
+					box-sizing: border-box;
+					width: 49.5%;
+					margin: 0;
+				}
+
+				#configForm fieldset:nth-child(1),
+				#configForm fieldset:nth-child(2),
+				#configForm fieldset:nth-child(4) {
+					order: -1;
+					/* margin-right: 8px; */
+				}
+
+				#configForm fieldset:nth-child(2) {
+					flex-basis: 100%;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<form id="configForm">
+			<fieldset>
+				<legend>Input</legend>
+				<input type="file" name="input_file" />
+				<span id="inputFileComment" class="dim">using default image</span>
+			</fieldset>
+			<fieldset>
+				<legend>Compression</legend>
+				<label>Quality: <input type="number" name="quality" value="75" style="width:64px" /></label><br>
+				<label>Chroma subsamle: h<input type="number" name="chroma_subsamle_h" value="2" min="1" max="4" style="width:40px" />
+					v<input type="number" name="chroma_subsamle_v" value="2" min="1" max="4" style="width:40px" /></label><br>
+				<label>Smoothing: <input type="number" name="smoothing_factor" value="0" min="0" max="100" style="width:64px" /></label>
+			</fieldset>
+			<fieldset>
+				<legend>Optimization</legend>
+				<label>
+					Quantization table:
+					<select name="quant_table" style="max-width:256px">
+						<option value="0">0: Tables from JPEG Annex K</option>
+						<option value="1">1: Flat table</option>
+						<option value="2">2: Table tuned for MSSIM on Kodak image set</option>
+						<option value="3" selected>3: Table from http://www.imagemagick.org/discourse-server/viewtopic.php?f=22&t=20333&p=98008#p98008
+						</option>
+						<option value="4">4: Table tuned for PSNR-HVS-M on Kodak image set</option>
+						<option value="5">5: Table from: Relevance of Human Vision to JPEG-DCT Compression
+							(1992) Klein, Silverstein and Carney</option>
+						<option value="6">6: Table from: DCTune Perceptual Optimization of Compressed Dental X-Rays
+							(1997) Watson, Taylor, Borthwick</option>
+						<option value="7">7: Table from: A Visual Detection Model for DCT Coefficient Quantization
+							(12/9/93) Ahumada, Watson, Peterson</option>
+						<option value="8">8: Table from: An Improved Detection Model for DCT Coefficient Quantization
+							(1993) Peterson, Ahumada and Watson</option>
+					</select>
+				</label><br>
+				<label>Optimize coding<input type="checkbox" name="optimize_coding" checked /></label><br>
+				<fieldset>
+					<legend>Trellis quantisation</legend>
+					<label>num loops <input type="number" name="trellis__num_loops" value="10" style="width:64px" />
+						<span class="dim">0 — disabled</span></label><br>
+					<label>multipass<input type="checkbox" name="trellis__multipass" checked /></label><br>
+					<label>optimize zero blocks<input type="checkbox" name="trellis__optimize_zero_blocks" checked /></label><br>
+					<label>optimize table<input type="checkbox" name="trellis__optimize_table" checked /></label>
+				</fieldset>
+			</fieldset>
+			<fieldset>
+				<legend>Output</legend>
+				<label>
+					Color space:
+					<select name="out_color_space" style="max-width:256px">
+						<option value="JCS_GRAYSCALE">GRAYSCALE</option>
+						<option value="JCS_RGB">RGB</option>
+						<option value="JCS_YCbCr" selected>YCbCr</option>
+						<option value="JCS_CMYK">CMYK</option>
+						<option value="JCS_YCCK">YCCK</option>
+					</select>
+					<span id="outColorSpaceComment" class="dim"></span>
+				</label><br>
+				<label>Progressive<input type="checkbox" name="progression" checked /></label><br>
+			</fieldset>
+			<label><input type="submit" value="Update image" /><span id="workIndicator">⏳</span></label>
+		</form>
+		<pre id="logBox"></pre>
+		<div id="samplesTabBox">
+			<div id="samplesTabList"></div>
+			<button id="addSampleButton">compare</button>
+			<span class="dim">use mouse or Ctrl+Shift+[1-9]</span>
+		</div>
+		<div id="samplesBox"></div>
+		<script src="index.js" type="module"></script>
+	</body>
+</html>
