@@ -45,7 +45,7 @@ for (const radio of configForm.mode)
 		/** @type {NodeListOf<HTMLInputElement|HTMLSelectElement>} */
 		const elems = configForm.querySelectorAll('input,select')
 		for (const elem of elems)
-			if (!['input_file', 'mode', 'quality'].includes(elem.name) && elem.type !== 'submit')
+			if (!['input_file', 'mode', 'luma_quality'].includes(elem.name) && elem.type !== 'submit')
 				elem.disabled = radio.value === 'canvas'
 	}
 window.onkeydown = e => {
@@ -125,7 +125,7 @@ async function compressWithMozJPEG(w, h, buf) {
 
 	mozJpeg.cinfo_set_out_color_space(outColorSpace)
 	mozJpeg.cinfo_set_quant_table(optInt('quant_table'))
-	mozJpeg.cinfo_set_quality(optInt('quality'), -1)
+	mozJpeg.cinfo_set_quality(optInt('luma_quality'), optInt('chroma_quality'))
 	mozJpeg.cinfo_set_optimize_coding(optBool('optimize_coding'))
 	mozJpeg.cinfo_set_chroma_subsample(optInt('chroma_subsamle_h'), optInt('chroma_subsamle_v'))
 	mozJpeg.cinfo_set_smoothing_factor(optInt('smoothing_factor'))
@@ -165,7 +165,7 @@ async function compressWithCanvas(w, h, buf) {
 				resolve({ blob, elapsed: Date.now() - stt })
 			},
 			'image/jpeg',
-			optInt('quality') / 100,
+			optInt('luma_quality') / 100,
 		)
 	})
 }

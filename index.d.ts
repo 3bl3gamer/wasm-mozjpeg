@@ -14,7 +14,7 @@
  * @prop {(value:number) => void} cinfo_set_smoothing_factor - image smoothing (1-100, 0 by default)
  * @prop {(num_loops:number, use_multipass:boolean, optimize_zero_blocks:boolean, optimize_table:boolean) => void} cinfo_set_trellis - configures Trellis quantisation passes (slower, slight better quality, more info at https://github.com/mozilla/mozjpeg/blob/master/README-mozilla.txt)
  * @prop {(luma_quality:number, chroma_quality:number) => void} cinfo_set_quality - set luma (Y) and chroma (Cb,Cr) quality (0-100; if chroma is set to -1, the luma value will be used)
- * @prop {(h_samp_factor:number, v_samp_factor:number) => void} cinfo_set_chroma_subsample - downscale chroma channels (Cb and Cr) by `factor` times (2x2 by default if quality < 90, 1x1 otherwise)
+ * @prop {(h_samp_factor:number, v_samp_factor:number) => void} cinfo_set_chroma_subsample - downscale chroma channels (Cb and Cr) by `factor` times (2x2 by default if quality < 80, 2x1 if quality < 90, 1x1 otherwise)
  * @prop {() => void} cinfo_disable_progression - output regular (sequential) JPEG (will be progressive by default)
  * @prop {() => void} start_compress - start compression, get ready to accept lines. Must be called after cinfo_* funcs (if any).
  * @prop {() => boolean} write_scanlines - send lines (one line currently) to compressor. Must be called for all image lines after start_compress().
@@ -122,7 +122,7 @@ export type MozJPEG = {
      */
     cinfo_set_quality: (luma_quality: number, chroma_quality: number) => void;
     /**
-     * - downscale chroma channels (Cb and Cr) by `factor` times (2x2 by default if quality < 90, 1x1 otherwise)
+     * - downscale chroma channels (Cb and Cr) by `factor` times (2x2 by default if quality < 80, 2x1 if quality < 90, 1x1 otherwise)
      */
     cinfo_set_chroma_subsample: (h_samp_factor: number, v_samp_factor: number) => void;
     /**

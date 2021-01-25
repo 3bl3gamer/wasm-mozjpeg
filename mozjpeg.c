@@ -112,7 +112,7 @@ void cinfo_set_quality(int luma_quality, int chroma_quality)
 	if (chroma_quality >= 0)
 	{
 		*end_ptr++ = ',';
-		end_ptr = uint2char(end_ptr, luma_quality);
+		end_ptr = uint2char(end_ptr, chroma_quality);
 	}
 	*end_ptr = '\0';
 

@@ -1,6 +1,6 @@
 WebAssembly [MozJPEG](https://github.com/mozilla/mozjpeg) encoder.
 
-Inspured by https://github.com/cyrilwanner/wasm-codecs, https://github.com/saschazar21/webassembly/tree/master/packages/mozjpeg and the thirst for adventures.
+Inspired by [cyrilwanner/wasm-codecs](https://github.com/cyrilwanner/wasm-codecs), [saschazar21/webassembly/mozjpeg](https://github.com/saschazar21/webassembly/tree/master/packages/mozjpeg) and the thirst for adventures.
 
 
 ## Examples

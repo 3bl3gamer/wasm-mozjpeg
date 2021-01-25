@@ -72,10 +72,12 @@
 				<legend>Compression</legend>
 				<label><input type="radio" name="mode" value="mozjpeg" checked />MozJPEG</label>
 				<label><input type="radio" name="mode" value="canvas" />Canvas.toBlob</label><br>
-				<label>Quality: <input type="number" name="quality" value="75" style="width:64px" /></label><br>
+				<label>Quality: luma<input type="number" name="luma_quality" value="75" min="0" max="100" style="width:50px" />
+					chroma<input type="number" name="chroma_quality" value="-1" min="-1" max="100" style="width:50px" />
+					<span class="dim">-1 — use luma value</span></label><br>
 				<label>Chroma subsamle: h<input type="number" name="chroma_subsamle_h" value="2" min="1" max="4" style="width:40px" />
 					v<input type="number" name="chroma_subsamle_v" value="2" min="1" max="4" style="width:40px" /></label><br>
-				<label>Smoothing: <input type="number" name="smoothing_factor" value="0" min="0" max="100" style="width:64px" /></label>
+				<label>Smoothing: <input type="number" name="smoothing_factor" value="0" min="0" max="100" style="width:50px" /></label>
 			</fieldset>
 			<fieldset>
 				<legend>Optimization</legend>
