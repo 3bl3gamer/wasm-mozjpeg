@@ -18,29 +18,30 @@ const outImgFilePtr = 10042
  * @prop {WebAssembly.Instance} instance
  * @prop {WebAssembly.Memory} memory
  * @prop {(start:Pointer, length:number) => Uint8Array} getMemoryUint8View
- * @prop {(start:Pointer, length:number) => void} onImgChunk
- * @prop {(width:number, height:number, in_color_space:InColorSpace, channels:number) => Pointer} init_compress
+ * @prop {(start:Pointer, length:number) => void} onImgChunk - called when next JPEG file chunk is ready an must be copied out from WASM memory
+ * @prop {(width:number, height:number, in_color_space:InColorSpace, channels:number) => Pointer} init_compress - initialize and set default MozJPEG settings. Must be called before cinfo_* funcs.
  * @prop {(value:OutColorSpace) => void} cinfo_set_out_color_space
- * @prop {(value:number) => void} cinfo_set_quant_table
- * @prop {(value:boolean) => void} cinfo_set_optimize_coding
- * @prop {(value:number) => void} cinfo_set_smoothing_factor
- * @prop {(num_loops:number, use_multipass:boolean, optimize_zero_blocks:boolean, optimize_table:boolean) => void} cinfo_set_trellis
- * @prop {(luma_quality:number, chroma_quality:number) => void} cinfo_set_quality
- * @prop {(h_samp_factor:number, v_samp_factor:number) => void} cinfo_set_chroma_subsample
- * @prop {() => void} cinfo_disable_progression
- * @prop {() => void} start_compress
- * @prop {() => boolean} write_scanlines
- * @prop {() => void} finish_compress
+ * @prop {(value:number) => void} cinfo_set_quant_table - set quant table index (3 by default, more info at https://github.com/mozilla/mozjpeg/blob/master/README-mozilla.txt#L171-L186)
+ * @prop {(value:boolean) => void} cinfo_set_optimize_coding - compute optimal Huffman coding tables (true by default, more info at https://github.com/mozilla/mozjpeg/blob/master/libjpeg.txt)
+ * @prop {(value:number) => void} cinfo_set_smoothing_factor - image smoothing (1-100, 0 by default)
+ * @prop {(num_loops:number, use_multipass:boolean, optimize_zero_blocks:boolean, optimize_table:boolean) => void} cinfo_set_trellis - configures Trellis quantisation passes (slower, slight better quality, more info at https://github.com/mozilla/mozjpeg/blob/master/README-mozilla.txt)
+ * @prop {(luma_quality:number, chroma_quality:number) => void} cinfo_set_quality - set luma (Y) and chroma (Cb,Cr) quality (0-100; if chroma is set to -1, the luma value will be used)
+ * @prop {(h_samp_factor:number, v_samp_factor:number) => void} cinfo_set_chroma_subsample - downscale chroma channels (Cb and Cr) by `factor` times (2x2 by default if quality < 90, 1x1 otherwise)
+ * @prop {() => void} cinfo_disable_progression - output regular (sequential) JPEG (will be progressive by default)
+ * @prop {() => void} start_compress - start compression, get ready to accept lines. Must be called after cinfo_* funcs (if any).
+ * @prop {() => boolean} write_scanlines - send lines (one line currently) to compressor. Must be called for all image lines after start_compress().
+ * @prop {() => void} finish_compress - complete the compression cycle (write out remainig data). Must be called after write_scanlines() calls.
  */
 
 /**
  * @typedef {Object} ModuleOptions
- * @prop {((msg:string) => unknown)|null} [onStdout=console.warn]
- * @prop {((msg:string) => unknown)|null} [onStderr=console.error]
- * @prop {((newPages:number, totalBytes:number, lastAllocBytes:number) => unknown)|null} [opts.onMemGrow]
+ * @prop {((msg:string) => unknown)|null} [onStdout=console.warn] - handle MozJpeg stdout messages (console.warn is used by dfault)
+ * @prop {((msg:string) => unknown)|null} [onStderr=console.error] - handle MozJpeg stderr messages (console.error is used by dfault)
+ * @prop {((newPages:number, totalBytes:number, lastAllocBytes:number) => unknown)|null} [opts.onMemGrow] - handle WASM memory growth.
  */
 
 /**
+ * Load WASM module by fetch'ing it and processing as stream. Suitable for Web.
  * @param {ModuleOptions|null} [opts]
  * @returns {Promise<MozJPEG>}
  */
@@ -52,8 +53,9 @@ export function loadWebModule(opts) {
 }
 
 /**
+ * Load WASM module from file system. Suitable for Node.js.
  * @typedef {{promises:{readFile(fpath:string):Promise<Buffer>}}} ReadableFS
- * @param {Promise<ReadableFS> | ReadableFS} fs
+ * @param {Promise<ReadableFS> | ReadableFS} fs - node `js` package (or any other object with fs.promises.readFile() func)
  * @param {ModuleOptions|null} [opts]
  * @returns {Promise<MozJPEG>}
  */
@@ -65,6 +67,8 @@ export function loadNodeModule(fs, opts) {
 }
 
 /**
+ * Load module by calling external `loadFunc`.
+ * Actually, `loadModule` will just init the WASM module that came from `loadFunc`.
  * @param {(importObject:Object) => Promise<WebAssembly.WebAssemblyInstantiatedSource>} loadFunc
  * @param {ModuleOptions|null} [opts]
  * @returns {Promise<MozJPEG>}
@@ -170,6 +174,8 @@ export async function loadModule(loadFunc, opts) {
  */
 
 /**
+ * Simple init func. Returns row buffer location (to use with `write_scanlines`)
+ * and array that will be filled with ArrayBuffer-chunks after compression.
  * @param {MozJPEG} mozJpeg
  * @param {number} w
  * @param {number} h
@@ -188,11 +194,12 @@ export function initCompressSimple(mozJpeg, w, h, inColorSpace, channels) {
 }
 
 /**
+ * Sends all image buffer pixels to MozJPEG line-by-line.
  * @param {MozJPEG} mozJpeg
- * @param {BufferLocation} rowBufLocation
- * @param {Uint8Array|Uint8ClampedArray} pixBuf
- * @param {number} h
- * @param {number} rowStride
+ * @param {BufferLocation} rowBufLocation - where in WASM memory to write pixel data
+ * @param {Uint8Array|Uint8ClampedArray} pixBuf - source buffer
+ * @param {number} h - number of rows (height)
+ * @param {number} rowStride - row stride, typically width*bytes_per_pixel
  * @returns {void}
  */
 export function writeRowsSimple(mozJpeg, rowBufLocation, pixBuf, h, rowStride) {
