@@ -27,10 +27,8 @@ configForm.onsubmit = e => {
 addSampleButton.onclick = () => {
 	addSample()
 }
-mustBeNotNull(
-	/**@type {HTMLSelectElement|null}*/ (configForm.querySelector('[name="out_color_space"]')),
-).onchange = e => {
-	const val = /**@type {*}*/ (e.target).value
+configForm.out_color_space.onchange = () => {
+	const val = configForm.out_color_space.value
 	outColorSpaceComment.textContent =
 		val === 'JCS_GRAYSCALE'
 			? 'seems broken'
@@ -38,12 +36,18 @@ mustBeNotNull(
 			? 'will threat input as YCCK (instead of RGBA), will produce wrong colors'
 			: ''
 }
-mustBeNotNull(
-	/**@type {HTMLInputElement|null}*/ (configForm.querySelector('[name="input_file"]')),
-).onchange = e => {
-	const files = /**@type {*}*/ (e.target).files
+configForm.input_file.onchange = () => {
+	const files = configForm.input_file.files
 	inputFileComment.classList.toggle('hidden', files[0] && files[0].size > 0)
 }
+for (const radio of configForm.mode)
+	radio.onchange = () => {
+		/** @type {NodeListOf<HTMLInputElement|HTMLSelectElement>} */
+		const elems = configForm.querySelectorAll('input,select')
+		for (const elem of elems)
+			if (!['input_file', 'mode', 'quality'].includes(elem.name) && elem.type !== 'submit')
+				elem.disabled = radio.value === 'canvas'
+	}
 window.onkeydown = e => {
 	if (e.ctrlKey && e.shiftKey && !e.altKey)
 		if (e.keyCode >= '1'.charCodeAt(0) && e.keyCode <= '9'.charCodeAt(0)) {
@@ -75,45 +79,12 @@ async function generate() {
 			? await readImageFileToPixBuffer(/** @type {File} */ (opts.input_file))
 			: fillDummyPixBuffer(1024, 384)
 
-	const outColorSpace = {
-		JCS_GRAYSCALE: JCS_GRAYSCALE,
-		JCS_RGB: JCS_RGB,
-		JCS_YCbCr: JCS_YCbCr,
-		JCS_CMYK: JCS_CMYK,
-		JCS_YCCK: JCS_YCCK,
-	}[opts.out_color_space]
-	// MozJPEG will refuse to convert RGB[A] to 4-channel outputs (CMYK or YCCK).
-	// So, if out color space is CMYK or YCCK, assuming input RGBA to be same as input.
-	// It will produce false colors but is suitable for demonstration.
-	const isColorSpace = [JCS_CMYK, JCS_YCCK].includes(outColorSpace) ? outColorSpace : JCS_EXT_RGBA
-
 	try {
-		const mozJpeg = await mozJpegPromise
-		const channels = 4
-		let { rowBufLocation, imgChunks } = initCompressSimple(mozJpeg, w, h, isColorSpace, channels)
+		const { blob, elapsed } =
+			opts.mode === 'mozjpeg'
+				? await compressWithMozJPEG(w, h, buf)
+				: await compressWithCanvas(w, h, buf)
 
-		mozJpeg.cinfo_set_out_color_space(outColorSpace)
-		mozJpeg.cinfo_set_quant_table(optInt('quant_table'))
-		mozJpeg.cinfo_set_quality(optInt('quality'), -1)
-		mozJpeg.cinfo_set_optimize_coding(optBool('optimize_coding'))
-		mozJpeg.cinfo_set_chroma_subsample(optInt('chroma_subsamle_h'), optInt('chroma_subsamle_v'))
-		mozJpeg.cinfo_set_smoothing_factor(optInt('smoothing_factor'))
-		if (!optBool('progression')) mozJpeg.cinfo_disable_progression()
-		if (optInt('trellis__num_loops') !== 0)
-			mozJpeg.cinfo_set_trellis(
-				optInt('trellis__num_loops'),
-				optBool('trellis__multipass'),
-				optBool('trellis__optimize_zero_blocks'),
-				optBool('trellis__optimize_table'),
-			)
-
-		const stt = Date.now()
-		mozJpeg.start_compress()
-		writeRowsSimple(mozJpeg, rowBufLocation, buf, h, w * channels)
-		mozJpeg.finish_compress()
-		const elapsed = Date.now() - stt
-
-		const blob = new Blob(imgChunks, { type: 'image/jpeg' })
 		const img = mustBeNotNull(getLastSampleBox().querySelector('img'))
 		URL.revokeObjectURL(img.src)
 		img.src = URL.createObjectURL(blob)
@@ -131,12 +102,79 @@ async function generate() {
 
 	workIndicator.classList.add('hidden')
 }
+async function compressWithMozJPEG(w, h, buf) {
+	const opts = Object.fromEntries(new FormData(configForm))
+	const optInt = name => parseInt(/**@type {string}*/ (opts[name]))
+	const optBool = name => opts[name] === 'on'
+
+	const outColorSpace = {
+		JCS_GRAYSCALE: JCS_GRAYSCALE,
+		JCS_RGB: JCS_RGB,
+		JCS_YCbCr: JCS_YCbCr,
+		JCS_CMYK: JCS_CMYK,
+		JCS_YCCK: JCS_YCCK,
+	}[opts.out_color_space]
+	// MozJPEG will refuse to convert RGB[A] to 4-channel outputs (CMYK or YCCK).
+	// So, if out color space is CMYK or YCCK, assuming input RGBA to be same as input.
+	// It will produce false colors but is suitable for demonstration.
+	const isColorSpace = [JCS_CMYK, JCS_YCCK].includes(outColorSpace) ? outColorSpace : JCS_EXT_RGBA
+
+	const mozJpeg = await mozJpegPromise
+	const channels = 4
+	let { rowBufLocation, imgChunks } = initCompressSimple(mozJpeg, w, h, isColorSpace, channels)
+
+	mozJpeg.cinfo_set_out_color_space(outColorSpace)
+	mozJpeg.cinfo_set_quant_table(optInt('quant_table'))
+	mozJpeg.cinfo_set_quality(optInt('quality'), -1)
+	mozJpeg.cinfo_set_optimize_coding(optBool('optimize_coding'))
+	mozJpeg.cinfo_set_chroma_subsample(optInt('chroma_subsamle_h'), optInt('chroma_subsamle_v'))
+	mozJpeg.cinfo_set_smoothing_factor(optInt('smoothing_factor'))
+	if (!optBool('progression')) mozJpeg.cinfo_disable_progression()
+	if (optInt('trellis__num_loops') !== 0)
+		mozJpeg.cinfo_set_trellis(
+			optInt('trellis__num_loops'),
+			optBool('trellis__multipass'),
+			optBool('trellis__optimize_zero_blocks'),
+			optBool('trellis__optimize_table'),
+		)
+
+	const stt = Date.now()
+	mozJpeg.start_compress()
+	writeRowsSimple(mozJpeg, rowBufLocation, buf, h, w * channels)
+	mozJpeg.finish_compress()
+	const elapsed = Date.now() - stt
+
+	return { blob: new Blob(imgChunks, { type: 'image/jpeg' }), elapsed }
+}
+
+async function compressWithCanvas(w, h, buf) {
+	const opts = Object.fromEntries(new FormData(configForm))
+	const optInt = name => parseInt(/**@type {string}*/ (opts[name]))
+
+	const canvas = document.createElement('canvas')
+	canvas.width = w
+	canvas.height = h
+	const idata = new ImageData(buf, w, h)
+	mustBeNotNull(canvas.getContext('2d')).putImageData(idata, 0, 0)
+
+	return new Promise(resolve => {
+		const stt = Date.now()
+		canvas.toBlob(
+			blob => {
+				if (blob === null) throw new Error('canvas.toBlob returned null, this should not happen')
+				resolve({ blob, elapsed: Date.now() - stt })
+			},
+			'image/jpeg',
+			optInt('quality') / 100,
+		)
+	})
+}
 
 // === ui ===
 
 function addSample() {
 	const button = document.createElement('button')
-	button.textContent = '#' + samplesTabList.children.length
+	button.textContent = '#' + (samplesTabList.children.length + 1)
 	button.onmouseover = () => {
 		showSampleBox(Array.from(samplesTabList.children).indexOf(button))
 	}
