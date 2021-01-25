@@ -21,20 +21,29 @@
  * @prop {() => void} finish_compress
  */
 /**
+ * @typedef {Object} ModuleOptions
+ * @prop {((msg:string) => unknown)|null} [onStdout=console.warn]
+ * @prop {((msg:string) => unknown)|null} [onStderr=console.error]
+ * @prop {((newPages:number, totalBytes:number, lastAllocBytes:number) => unknown)|null} [opts.onMemGrow]
+ */
+/**
+ * @param {ModuleOptions|null} [opts]
  * @returns {Promise<MozJPEG>}
  */
-export function loadWebModule(): Promise<MozJPEG>;
+export function loadWebModule(opts?: ModuleOptions | null): Promise<MozJPEG>;
 /**
  * @typedef {{promises:{readFile(fpath:string):Promise<Buffer>}}} ReadableFS
  * @param {Promise<ReadableFS> | ReadableFS} fs
+ * @param {ModuleOptions|null} [opts]
  * @returns {Promise<MozJPEG>}
  */
-export function loadNodeModule(fs: Promise<ReadableFS> | ReadableFS): Promise<MozJPEG>;
+export function loadNodeModule(fs: Promise<ReadableFS> | ReadableFS, opts?: ModuleOptions | null): Promise<MozJPEG>;
 /**
  * @param {(importObject:Object) => Promise<WebAssembly.WebAssemblyInstantiatedSource>} loadFunc
+ * @param {ModuleOptions|null} [opts]
  * @returns {Promise<MozJPEG>}
  */
-export function loadModule(loadFunc: (importObject: any) => Promise<WebAssembly.WebAssemblyInstantiatedSource>): Promise<MozJPEG>;
+export function loadModule(loadFunc: (importObject: any) => Promise<WebAssembly.WebAssemblyInstantiatedSource>, opts?: ModuleOptions | null): Promise<MozJPEG>;
 /**
  * @typedef {{startPtr:Pointer, length:number}} BufferLocation
  */
@@ -89,6 +98,11 @@ export type MozJPEG = {
     start_compress: () => void;
     write_scanlines: () => boolean;
     finish_compress: () => void;
+};
+export type ModuleOptions = {
+    onStdout?: (msg: string) => unknown;
+    onStderr?: (msg: string) => unknown;
+    onMemGrow?: (newPages: number, totalBytes: number, lastAllocBytes: number) => unknown;
 };
 export type ReadableFS = {
     promises: {

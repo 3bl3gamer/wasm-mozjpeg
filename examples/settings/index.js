@@ -11,7 +11,7 @@ import {
 } from '../../index.js'
 
 const anyWindow = /** @type {*} */ (window)
-const logBox = /** @type {HTMLPreElement} */ (anyWindow.logBox)
+const statusBox = /** @type {HTMLPreElement} */ (anyWindow.statusBox)
 const samplesTabList = /** @type {HTMLDivElement} */ (anyWindow.samplesTabList)
 const samplesBox = /** @type {HTMLDivElement} */ (anyWindow.samplesBox)
 const workIndicator = /** @type {HTMLSpanElement} */ (anyWindow.workIndicator)
@@ -53,13 +53,18 @@ window.onkeydown = e => {
 		}
 }
 
-const mozJpegPromise = loadWebModule()
+function onMemGrow(newPages, totalBytes, lastAllocSize) {
+	const total = (totalBytes / 1024 / 1024).toFixed(1)
+	console.log(`memory grow: +${newPages} page(s), total size: ${total}MiB, last alloc: +${lastAllocSize}B`)
+	statusBox.textContent = `WASM memory usage: ${total}MiB`
+}
+const mozJpegPromise = loadWebModule({ onMemGrow })
 
 generate()
 
 async function generate() {
 	workIndicator.classList.remove('hidden')
-	sleep(20)
+	await nextRepaint()
 
 	const opts = Object.fromEntries(new FormData(configForm))
 	const optInt = name => parseInt(/**@type {string}*/ (opts[name]))
@@ -120,6 +125,7 @@ async function generate() {
 	} catch (ex) {
 		const infoElem = mustBeNotNull(getLastSampleBox().querySelector('.info'))
 		infoElem.textContent = ex
+		console.error(ex)
 	}
 	showLastSampleBox()
 
@@ -127,10 +133,6 @@ async function generate() {
 }
 
 // === ui ===
-
-function log(msg) {
-	logBox.textContent += msg + '\n'
-}
 
 function addSample() {
 	const button = document.createElement('button')
@@ -161,8 +163,8 @@ function getLastSampleBox() {
 
 // === utils ===
 
-function sleep(ms) {
-	return new Promise(resolve => setTimeout(resolve, ms))
+function nextRepaint() {
+	return new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 1)))
 }
 
 /**

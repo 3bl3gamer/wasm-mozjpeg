@@ -34,42 +34,64 @@ const outImgFilePtr = 10042
  */
 
 /**
+ * @typedef {Object} ModuleOptions
+ * @prop {((msg:string) => unknown)|null} [onStdout=console.warn]
+ * @prop {((msg:string) => unknown)|null} [onStderr=console.error]
+ * @prop {((newPages:number, totalBytes:number, lastAllocBytes:number) => unknown)|null} [opts.onMemGrow]
+ */
+
+/**
+ * @param {ModuleOptions|null} [opts]
  * @returns {Promise<MozJPEG>}
  */
-export function loadWebModule() {
+export function loadWebModule(opts) {
 	return loadModule(importObject => {
 		const filepath = new URL('mozjpeg.wasm', import.meta.url).pathname
 		return WebAssembly.instantiateStreaming(fetch(filepath), importObject)
-	})
+	}, opts)
 }
 
 /**
  * @typedef {{promises:{readFile(fpath:string):Promise<Buffer>}}} ReadableFS
  * @param {Promise<ReadableFS> | ReadableFS} fs
+ * @param {ModuleOptions|null} [opts]
  * @returns {Promise<MozJPEG>}
  */
-export function loadNodeModule(fs) {
+export function loadNodeModule(fs, opts) {
 	return loadModule(async importObject => {
 		const filepath = new URL('mozjpeg.wasm', import.meta.url).pathname
 		return WebAssembly.instantiate(await (await fs).promises.readFile(filepath), importObject)
-	})
+	}, opts)
 }
 
 /**
  * @param {(importObject:Object) => Promise<WebAssembly.WebAssemblyInstantiatedSource>} loadFunc
+ * @param {ModuleOptions|null} [opts]
  * @returns {Promise<MozJPEG>}
  */
-export async function loadModule(loadFunc) {
+export async function loadModule(loadFunc, opts) {
+	opts ??= {}
+	const onStdout = opts.onStdout ?? console.warn
+	const onStderr = opts.onStdout ?? console.error
+	const onMemGrow = opts.onMemGrow
+
+	let lastStderrMsg = /** @type {string|null} */ (null)
 	function onPrint(filePtr, string) {
-		if (filePtr === stdoutPtr) console.warn(string)
-		else if (filePtr === stderrPtr) console.error(string)
-		else throw new Error(`wrong print file: ${filePtr}`)
+		if (filePtr === stdoutPtr) {
+			onStdout(string)
+		} else if (filePtr === stderrPtr) {
+			lastStderrMsg = string
+			onStderr(string)
+		} else throw new Error(`wrong print file: ${filePtr}`)
 	}
 
 	const importObject = {
 		env: {
 			exit(code) {
-				throw new Error(`WASM terminated with exit(${code})`)
+				throw new Error(
+					`WASM terminated with exit(${code})` +
+						(lastStderrMsg === null ? '' : ' after: ' + lastStderrMsg),
+				)
 			},
 			fwrite(bufPtr, size, count, streamPtr) {
 				// console.log('fwrite', arguments)
@@ -106,10 +128,7 @@ export async function loadModule(loadFunc) {
 			math_pow: Math.pow,
 			after_memory_grow(newPages, lastAllocSize) {
 				memBuf = new Uint8Array(memory.buffer)
-				const total = (memBuf.length / 1024 / 1024).toFixed(1)
-				console.log(
-					`memory grow: +${newPages} page(s), total size: ${total}MiB, last alloc: +${lastAllocSize}B`,
-				)
+				if (onMemGrow) onMemGrow(newPages, memBuf.length, lastAllocSize)
 			},
 
 			// // ===

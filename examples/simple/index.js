@@ -9,8 +9,8 @@ const canvasResultImg = /** @type {HTMLImageElement} */ (anyWindow.canvasResultI
 function log(msg) {
 	logBox.textContent += msg + '\n'
 }
-function sleep(ms) {
-	return new Promise(resolve => setTimeout(resolve, ms))
+function nextRepaint() {
+	return new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 1)))
 }
 
 async function generate() {
@@ -22,7 +22,7 @@ async function generate() {
 	const quality = parseInt(new FormData(configForm).get('quality') + '')
 
 	log('generaing image buffer...')
-	await sleep(1)
+	await nextRepaint()
 
 	const w = 2048
 	const h = 384
@@ -48,7 +48,7 @@ async function generate() {
 
 	log('')
 	log('compressing image with MozJPEG...')
-	await sleep(1)
+	await nextRepaint()
 
 	const stt = Date.now()
 	const imgChunks = compressSimpleRGBA(mozJpeg, w, h, quality, buf)
