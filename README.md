@@ -79,6 +79,29 @@ loadWebModule().then(mozJpeg => {
 })
 ```
 
+### Color spaces
+
+Different in/out color spaces may be used (see [features](https://github.com/3bl3gamer/wasm-mozjpeg#features)).
+Just ensure MozJPEG [can handle](https://github.com/mozilla/mozjpeg/blob/master/libjpeg.txt#L1388-L1391) required color transformation.
+
+For example, if input color data is already in `YCbCr`, it may be encoded directly:
+
+```js
+// buffer should have length = width * wheight * 3
+const { widht, height, buffer } = getYCbCrPixels()
+
+const channels = 3
+let { rowBufLocation, imgChunks } =
+    initCompressSimple(mozJpeg, width, height, JCS_YCbCr, channels)
+
+mozJpeg.cinfo_set_out_color_space(JCS_YCbCr)
+//...
+mozJpeg.start_compress()
+writeRowsSimple(mozJpeg, rowBufLocation, buffer, height, width * channels)
+mozJpeg.finish_compress()
+//...
+```
+
 More info in [index.d.ts](https://github.com/3bl3gamer/wasm-mozjpeg/blob/master/index.d.ts), [mozjpeg/libjpeg.txt](https://github.com/mozilla/mozjpeg/blob/master/libjpeg.txt) and [mozjpeg/README-mozilla.txt](https://github.com/mozilla/mozjpeg/blob/master/README-mozilla.txt).
 
 
