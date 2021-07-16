@@ -1,0 +1,70 @@
+diff --git a/jcmarker.c b/jcmarker.c
+index c2a8e408..f324a604 100644
+--- a/jcmarker.c
++++ b/jcmarker.c
+@@ -617,6 +617,8 @@ METHODDEF(void)
+ write_marker_header(j_compress_ptr cinfo, int marker, unsigned int datalen)
+ /* Emit an arbitrary marker header */
+ {
++  fprintf(stderr, "must not be called"); exit(1);
++
+   if (datalen > (unsigned int)65533)            /* safety check */
+     ERREXIT(cinfo, JERR_BAD_LENGTH);
+ 
+@@ -629,6 +631,8 @@ METHODDEF(void)
+ write_marker_byte(j_compress_ptr cinfo, int val)
+ /* Emit one byte of marker parameters following write_marker_header */
+ {
++  fprintf(stderr, "must not be called"); exit(1);
++
+   emit_byte(cinfo, val);
+ }
+ 
+@@ -795,6 +799,8 @@ write_file_trailer(j_compress_ptr cinfo)
+ METHODDEF(void)
+ write_tables_only(j_compress_ptr cinfo)
+ {
++  fprintf(stderr, "must not be called"); exit(1);
++
+   int i;
+ 
+   emit_marker(cinfo, M_SOI);
+diff --git a/jmemmgr.c b/jmemmgr.c
+index 508ca742..cf86a76b 100644
+--- a/jmemmgr.c
++++ b/jmemmgr.c
+@@ -580,6 +580,9 @@ request_virt_sarray(j_common_ptr cinfo, int pool_id, boolean pre_zero,
+                     JDIMENSION maxaccess)
+ /* Request a virtual 2-D sample array */
+ {
++  // seems needed only in reading/writing BMPs and reading Tagra/GIFs
++  fprintf(stderr, "must not be called"); exit(1);
++
+   my_mem_ptr mem = (my_mem_ptr)cinfo->mem;
+   jvirt_sarray_ptr result;
+ 
+@@ -822,6 +825,9 @@ access_virt_sarray(j_common_ptr cinfo, jvirt_sarray_ptr ptr,
+ /* and extending for num_rows rows.  writable is true if  */
+ /* caller intends to modify the accessed area. */
+ {
++  // seems needed only in reading/writing BMPs and reading Tagra/GIFs
++  fprintf(stderr, "must not be called"); exit(1);
++
+   JDIMENSION end_row = start_row + num_rows;
+   JDIMENSION undef_row;
+ 
+diff --git a/jmorecfg.h b/jmorecfg.h
+index fb3a9cf4..2c5b3d47 100644
+--- a/jmorecfg.h
++++ b/jmorecfg.h
+@@ -239,8 +239,8 @@ typedef int boolean;
+ /* Capability options common to encoder and decoder: */
+ 
+ #define DCT_ISLOW_SUPPORTED     /* accurate integer method */
+-#define DCT_IFAST_SUPPORTED     /* less accurate int method [legacy feature] */
+-#define DCT_FLOAT_SUPPORTED     /* floating-point method [legacy feature] */
++// #define DCT_IFAST_SUPPORTED     /* less accurate int method [legacy feature] */
++// #define DCT_FLOAT_SUPPORTED     /* floating-point method [legacy feature] */
+ 
+ /* Encoder capability options: */
+ 

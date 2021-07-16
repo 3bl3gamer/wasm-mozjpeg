@@ -66,6 +66,20 @@ export function loadNodeModule(fs, opts) {
 	}, opts)
 }
 
+// /**
+//  * For experiments/testing/debugging. Generate from .wasm-file with:
+//  *   echo -n 'export ' > mozjpeg.wasm.js
+//  *   wasm2js --emscripten mozjpeg.wasm >> mozjpeg.wasm.js
+//  * @param {ModuleOptions|null} [opts]
+//  * @returns {Promise<MozJPEG>}
+//  */
+// export function loadJSModule(opts) {
+// 	return loadModule(async importObject => {
+// 		const exports = (await import('./mozjpeg.wasm.js')).instantiate(importObject.env)
+// 		return { instance: { exports }, module: {} }
+// 	})
+// }
+
 /**
  * Load module by calling external `loadFunc`.
  * Actually, `loadModule` will just init the WASM module that came from `loadFunc`.

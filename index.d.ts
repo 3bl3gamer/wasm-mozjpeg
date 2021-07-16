@@ -41,6 +41,14 @@ export function loadWebModule(opts?: ModuleOptions | null): Promise<MozJPEG>;
  */
 export function loadNodeModule(fs: Promise<ReadableFS> | ReadableFS, opts?: ModuleOptions | null): Promise<MozJPEG>;
 /**
+ * For experiments/testing/debugging. Generate from .wasm-file with:
+ *   echo -n 'export ' > mozjpeg.wasm.js
+ *   wasm2js --emscripten mozjpeg.wasm >> mozjpeg.wasm.js
+ * @param {ModuleOptions|null} [opts]
+ * @returns {Promise<MozJPEG>}
+ */
+export function loadJSModule(opts?: ModuleOptions | null): Promise<MozJPEG>;
+/**
  * Load module by calling external `loadFunc`.
  * Actually, `loadModule` will just init the WASM module that came from `loadFunc`.
  * @param {(importObject:Object) => Promise<WebAssembly.WebAssemblyInstantiatedSource>} loadFunc

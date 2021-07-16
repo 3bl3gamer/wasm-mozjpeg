@@ -1,13 +1,34 @@
 #!/bin/bash
 set -e
 
+help=""
+debug=""
+no_patch=""
+for i in "$@"; do
+    case $i in
+        -h*) help="${i#*=}";;
+        --help*) help="${i#*=}";;
+        --debug*) debug="${i#*=}";;
+        --no-patch*) no_patch="${i#*=}";;
+    esac
+done
+
+if [ "$help" != "" ]; then
+  echo "usage: $0 [--debug] [--no-patch]"
+  echo "  --debug     preserve wasm debug information and generate sourcemap"
+  echo "  --no-patch  do not re-apply patch file (faster rebuild)"
+  echo "  --help, -h  show this info"
+  exit 2
+fi
+
+
 # Loops unrolling gives no speedup in Chome and about 1-2% speedup in FF,
 # but increases .wasm size by 6%. So disabling it.
 COMMON_MAKE_ARGS="-fno-unroll-loops"
 FINAL_MAKE_ARGS=""
-if false; then
+if [ "$debug" != "" ]; then
   COMMON_MAKE_ARGS="$COMMON_MAKE_ARGS -g"
-  FINAL_MAKE_ARGS="$FINAL_MAKE_ARGS -gsource-map --source-map-base=./ -fprofile-instr-generate -fcoverage-mapping"
+  FINAL_MAKE_ARGS="$FINAL_MAKE_ARGS -gsource-map --source-map-base=./"
 fi
 
 echo ""
@@ -15,6 +36,11 @@ echo " === Building MozJPEG === "
 echo ""
 
 cd mozjpeg
+
+if [ "$no_patch" == "" ]; then
+  git checkout .
+  git apply ../mozjpeg_shrink.patch
+fi
 
 # FACEPALM
 # "type":"module" in root directory *silently* breaks something
