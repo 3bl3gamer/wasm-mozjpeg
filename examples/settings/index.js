@@ -117,11 +117,11 @@ async function compressWithMozJPEG(w, h, buf) {
 	// MozJPEG will refuse to convert RGB[A] to 4-channel outputs (CMYK or YCCK).
 	// So, if out color space is CMYK or YCCK, assuming input RGBA to be same as input.
 	// It will produce false colors but is suitable for demonstration.
-	const isColorSpace = [JCS_CMYK, JCS_YCCK].includes(outColorSpace) ? outColorSpace : JCS_EXT_RGBA
+	const inColorSpace = [JCS_CMYK, JCS_YCCK].includes(outColorSpace) ? outColorSpace : JCS_EXT_RGBA
 
 	const mozJpeg = await mozJpegPromise
 	const channels = 4
-	let { rowBufLocation, imgChunks } = initCompressSimple(mozJpeg, w, h, isColorSpace, channels)
+	let { rowBufLocation, imgChunks } = initCompressSimple(mozJpeg, w, h, inColorSpace, channels)
 
 	mozJpeg.cinfo_set_out_color_space(outColorSpace)
 	mozJpeg.cinfo_set_quant_table(optInt('quant_table'))

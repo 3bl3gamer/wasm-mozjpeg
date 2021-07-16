@@ -1,6 +1,14 @@
 #!/bin/bash
 set -e
 
+# Loops unrolling gives no speedup in Chome and about 1-2% speedup in FF,
+# but increases .wasm size by 6%. So disabling it.
+COMMON_MAKE_ARGS="-fno-unroll-loops"
+FINAL_MAKE_ARGS=""
+if false; then
+  COMMON_MAKE_ARGS="$COMMON_MAKE_ARGS -g"
+  FINAL_MAKE_ARGS="$FINAL_MAKE_ARGS -gsource-map --source-map-base=./ -fprofile-instr-generate -fcoverage-mapping"
+fi
 
 echo ""
 echo " === Building MozJPEG === "
@@ -22,7 +30,7 @@ emcmake cmake -G"Unix Makefiles" \
   -DWITH_SIMD=0 \
   -DENABLE_SHARED=0 \
   -DWITH_TURBOJPEG=0 \
-  -DCMAKE_C_FLAGS='-DNO_GETENV=1' \
+  -DCMAKE_C_FLAGS="-DNO_GETENV=1 $COMMON_MAKE_ARGS" \
   .
 
 emmake make -j 4
@@ -42,6 +50,8 @@ emcc \
   -s ERROR_ON_UNDEFINED_SYMBOLS=0 \
   -Wall -O3 -flto -Wl,--lto-O3,--no-entry \
   -nostdlib \
+  $COMMON_MAKE_ARGS \
+  $FINAL_MAKE_ARGS \
   -I mozjpeg \
   -o mozjpeg.wasm \
   mozjpeg.c custom_libc.c mozjpeg/libjpeg.a mozjpeg/rdswitch.c

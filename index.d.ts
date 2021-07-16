@@ -86,8 +86,8 @@ export function writeRowsSimple(mozJpeg: MozJPEG, rowBufLocation: BufferLocation
 export function compressSimpleRGBA(mozJpeg: MozJPEG, w: number, h: number, quality: number, pixBuf: Uint8Array | Uint8ClampedArray): ArrayBuffer[];
 export * from "./const.js";
 export type Pointer = number;
-export type OutColorSpace = 1 | 2 | 5 | 4 | 3;
-export type InColorSpace = 1 | 2 | 8 | 6 | 5 | 4 | 3 | 12 | 13 | 14 | 15;
+export type OutColorSpace = 1 | 2 | 3 | 4 | 5;
+export type InColorSpace = 1 | 2 | 3 | 4 | 5 | 6 | 8 | 12 | 13 | 14 | 15;
 export type MozJPEG = {
     instance: WebAssembly.Instance;
     memory: WebAssembly.Memory;
