@@ -37,8 +37,8 @@ loadWebModule().then(mozJpeg => {
     const quality = 75
     const iData = someCanvas.getContext('2d').getImageData(0, 0, 320, 240)
 
-    const imgChunks = compressSimpleRGBA(mozJpeg, iData.width, iData.height, quality, iData.data)
-    const blob = new Blob(imgChunks, { type: 'image/jpeg' })
+    const jpegChunks = compressSimpleRGBA(mozJpeg, iData.width, iData.height, quality, iData.data)
+    const blob = new Blob(jpegChunks, { type: 'image/jpeg' })
 
     const img = new Image()
     img.src = URL.createObjectURL(blob)
@@ -56,7 +56,7 @@ loadWebModule().then(mozJpeg => {
     const iData = someCanvas.getContext('2d').getImageData(0, 0, 320, 240)
 
     const channels = 4 //R, G, B and A
-    let { rowBufLocation, imgChunks } =
+    let { rowBufLocation, jpegChunks } =
         initCompressSimple(mozJpeg, iData.width, iData.height, JCS_EXT_RGBA, channels)
 
     mozJpeg.cinfo_set_out_color_space(JCS_YCbCr)
@@ -71,7 +71,7 @@ loadWebModule().then(mozJpeg => {
     mozJpeg.start_compress()
     writeRowsSimple(mozJpeg, rowBufLocation, iData.data, iData.height, iData.width * channels)
     mozJpeg.finish_compress()
-    const blob = new Blob(imgChunks, { type: 'image/jpeg' })
+    const blob = new Blob(jpegChunks, { type: 'image/jpeg' })
 
     const img = new Image()
     img.src = URL.createObjectURL(blob)
