@@ -45,13 +45,14 @@ export function simpleSprintf(mem, formatPtr, argsPtr) {
 	const format = getString(mem, formatPtr)
 	const args = new Uint32Array(mem.buffer, argsPtr)
 	let argsUsed = 0
-	return format.replace(/(.?)%([^%])/g, (_, prefix, suffix) => {
+	return format.replace(/(.?)%(\d*)([^%])/g, (_, prefix, pad, suffix) => {
 		if (prefix === '%') return '%%'
 		const arg = args[argsUsed++]
 		switch (suffix) {
 			case 's':
 				return prefix + getString(mem, arg)
 			case 'd':
+			case 'u':
 				return prefix + arg
 			default:
 				return prefix + `<!FMT:${suffix}:${arg}!>`

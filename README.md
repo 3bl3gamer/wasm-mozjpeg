@@ -7,6 +7,7 @@ Inspired by [cyrilwanner/wasm-codecs](https://github.com/cyrilwanner/wasm-codecs
 
 * [simple](https://3bl3gamer.github.io/wasm-mozjpeg/examples/simple/)
 * [settings demonstration](https://3bl3gamer.github.io/wasm-mozjpeg/examples/settings/)
+* [settings tests](https://3bl3gamer.github.io/wasm-mozjpeg/examples/tests/)
 
 
 ## Features

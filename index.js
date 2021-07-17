@@ -4,9 +4,9 @@ import { getString, putString, simpleSprintf, simpleSscanf } from './utils.js'
 
 export * from './const.js'
 
-const stdoutPtr = 1
-const stderrPtr = 2
-const outImgFilePtr = 10042
+const STDOUT_PTR = 1
+const STDERR_PTR = 2
+const OUT_IMG_FILE_PTR = 10042
 
 /** @typedef {number} Pointer */
 
@@ -90,14 +90,18 @@ export function loadNodeModule(fs, opts) {
 export async function loadModule(loadFunc, opts) {
 	opts ??= {}
 	const onStdout = opts.onStdout ?? console.warn
-	const onStderr = opts.onStdout ?? console.error
+	const onStderr = opts.onStderr ?? console.error
 	const onMemGrow = opts.onMemGrow
 
 	let lastStderrMsg = /** @type {string|null} */ (null)
+	/**
+	 * @param {number} filePtr
+	 * @param {string} string
+	 */
 	function onPrint(filePtr, string) {
-		if (filePtr === stdoutPtr) {
+		if (filePtr === STDOUT_PTR) {
 			onStdout(string)
-		} else if (filePtr === stderrPtr) {
+		} else if (filePtr === STDERR_PTR) {
 			lastStderrMsg = string
 			onStderr(string)
 		} else throw new Error(`wrong print file: ${filePtr}`)
@@ -113,7 +117,7 @@ export async function loadModule(loadFunc, opts) {
 			},
 			fwrite(bufPtr, size, count, streamPtr) {
 				// console.log('fwrite', arguments)
-				if (streamPtr === outImgFilePtr) mozJpeg.onImgChunk(bufPtr, count * size)
+				if (streamPtr === OUT_IMG_FILE_PTR) mozJpeg.onImgChunk(bufPtr, count * size)
 				else onPrint(streamPtr, getString(memBuf, bufPtr, count * size))
 				return count
 			},
@@ -122,9 +126,10 @@ export async function loadModule(loadFunc, opts) {
 				onPrint(fdPtr, simpleSprintf(memBuf, formatPtr, argsPtr))
 				return 0
 			},
-			fputc() {
-				console.error('fputc', arguments)
-				throw new Error('not implemented')
+			fputc(byte, fdPtr) {
+				// console.error('fputc', arguments)
+				onPrint(fdPtr, String.fromCharCode(byte))
+				return byte
 			},
 			fflush() {
 				// console.log('fflush', arguments)
