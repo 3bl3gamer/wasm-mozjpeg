@@ -13,23 +13,6 @@ void fail(char *msg)
 	exit(1);
 }
 
-char *uint2char(char *buf, int value)
-{
-	int len = 0;
-	do
-	{
-		buf[len++] = '0' + value % 10;
-		value /= 10;
-	} while (value > 0);
-	for (int i = 0, j = len - 1; i < j; i++, j--)
-	{
-		char t = buf[i];
-		buf[i] = buf[j];
-		buf[j] = t;
-	}
-	return buf + len;
-}
-
 FILE *const stdout = (FILE *)1;
 FILE *const stderr = (FILE *)2;
 FILE *const outImgFile = (FILE *)10042;
@@ -100,30 +83,37 @@ void cinfo_set_trellis(int num_loops, bool use_multipass, bool optimize_zero_blo
 }
 
 EMSCRIPTEN_KEEPALIVE
-void cinfo_set_quality(int luma_quality, int chroma_quality)
+void cinfo_set_channel_samp_factor(int component, int h_samp_factor, int v_samp_factor)
 {
-	if (luma_quality < 0 || luma_quality > 100)
-		fail("wrong luma quality");
-	if (chroma_quality > 100)
-		fail("wrong chroma quality");
-
-	char quality_str[8]; //max len for "100,100\0"
-	char *end_ptr = uint2char(quality_str, luma_quality);
-	if (chroma_quality >= 0)
-	{
-		*end_ptr++ = ',';
-		end_ptr = uint2char(end_ptr, chroma_quality);
-	}
-	*end_ptr = '\0';
-
-	set_quality_ratings(&cinfo, (char *)quality_str, /* baseline */ TRUE);
+	cinfo.comp_info[component].h_samp_factor = h_samp_factor;
+	cinfo.comp_info[component].v_samp_factor = v_samp_factor;
 }
 
 EMSCRIPTEN_KEEPALIVE
 void cinfo_set_chroma_subsample(int h_samp_factor, int v_samp_factor)
 {
-	cinfo.comp_info[0].h_samp_factor = h_samp_factor;
-	cinfo.comp_info[0].v_samp_factor = v_samp_factor;
+	cinfo_set_channel_samp_factor(0, h_samp_factor, v_samp_factor);
+}
+
+EMSCRIPTEN_KEEPALIVE
+void cinfo_set_quality(int luma_quality, int chroma_quality)
+{
+	if (luma_quality < 0 || luma_quality > 100)
+		fail("wrong quality value");
+	if (chroma_quality > 100)
+		fail("wrong quality value");
+	if (chroma_quality < 0)
+		chroma_quality = luma_quality;
+
+	set_quality_ratings_simple(&cinfo, luma_quality, chroma_quality, /* baseline */ TRUE);
+
+	// Disabling subsampling when high-quality color is desired.
+	// See set_quality_ratings in rdswitch.c
+	if (chroma_quality >= 90) {
+		cinfo_set_chroma_subsample(1, 1);
+	} else if (chroma_quality >= 80) {
+		cinfo_set_chroma_subsample(2, 1);
+	}
 }
 
 EMSCRIPTEN_KEEPALIVE

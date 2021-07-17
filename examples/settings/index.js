@@ -31,9 +31,9 @@ configForm.out_color_space.onchange = () => {
 	const val = configForm.out_color_space.value
 	outColorSpaceComment.textContent =
 		val === 'JCS_GRAYSCALE'
-			? 'seems broken'
+			? 'seems broken with progressive mode'
 			: val === 'JCS_YCCK'
-			? 'will threat input as YCCK (instead of RGBA), will produce wrong colors'
+			? 'will treat input as YCCK (instead of RGBA) for simplicity, will produce false colors'
 			: ''
 }
 configForm.input_file.onchange = () => {

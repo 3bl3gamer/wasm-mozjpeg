@@ -12,7 +12,7 @@ Inspired by [cyrilwanner/wasm-codecs](https://github.com/cyrilwanner/wasm-codecs
 
 ## Features
 
-* 323 KiB before gzip (wasm + js), 34 KiB after;
+* 321 KiB before gzip (wasm + js), 34 KiB after;
 * TypeScript definitions;
 * node and browser support;
 * different [input color spaces](https://github.com/3bl3gamer/wasm-mozjpeg/blob/master/const.js);

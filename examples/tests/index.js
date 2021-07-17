@@ -52,10 +52,11 @@ function fillDummyPixBuffer(w, h) {
 	for (let i = 0; i < 48; i++) {
 		for (let j = 0; j < 48; j++) {
 			const pos = (i + j * w) * 4
-			const line = (i + j * 0.5) % 16 <= 1
-			buf[pos + 0] = line ? 255 : 0
-			buf[pos + 1] = line ? 64 : 128
-			buf[pos + 2] = 0
+			const redLine = (i + j * 0.5) % 32 <= 1
+			const blueLine = (i + j * 0.5 + 16) % 32 <= 1
+			buf[pos + 0] = redLine ? 255 : 0
+			buf[pos + 1] = redLine || blueLine ? 64 : 128
+			buf[pos + 2] = blueLine ? 255 : 64
 		}
 	}
 	for (let i = w - 48; i < w; i++) {
@@ -94,6 +95,7 @@ function baseCFG() {
 		optimizeCoding: true,
 		chromaSubsamleH: 2,
 		chromaSubsamleV: 2,
+		sampFactor: null,
 		smoothingFactor: 0,
 		progression: true,
 		trellisNumLoops: 0,
@@ -104,6 +106,9 @@ function baseCFG() {
 }
 
 const tests = []
+for (const lumaQuality of [0, 10, 30, 50, 75, 100]) tests.push({ name: 'quality', lumaQuality })
+for (const chromaQuality of [10, 50]) tests.push({ name: 'quality', lumaQuality: 100, chromaQuality })
+
 for (const smoothingFactor of [0, 5])
 	for (const chromaSubsamleH of [2, 1])
 		for (const chromaSubsamleV of [2, 1])
@@ -114,9 +119,6 @@ for (const smoothingFactor of [0, 5])
 					chromaSubsamleH,
 					chromaSubsamleV,
 				})
-
-for (const lumaQuality of [0, 10, 50, 100]) tests.push({ name: 'quality', lumaQuality })
-for (const chromaQuality of [10, 50]) tests.push({ name: 'quality', lumaQuality: 100, chromaQuality })
 
 for (let id = 0; id <= 8; id++) tests.push({ name: 'quantization\ntable', quantTableId: id })
 
@@ -132,6 +134,26 @@ for (const trellisNumLoops of [1, 10])
 			trellisMultipass: f,
 			trellisOptimizeZeroBlocks: f,
 			trellisOptimizeTable: f,
+		})
+tests.push({ name: 'trellis', trellisNumLoops: 0 })
+
+for (let i = 0; i < 3; i++)
+	tests.push({
+		name: 'singe component\nsampling',
+		sampFactor: { component: i, h: 2, v: 2 },
+		outColorSpace: JCS_RGB,
+	})
+
+for (const lumaQuality of [50, 100])
+	for (const chromaQuality of [50, 100])
+		tests.push({
+			name: 'YCCK separate\nquality',
+			lumaQuality,
+			chromaQuality,
+			chromaSubsamleH: 2, // for YCCK 2x2 is default sampling factor for frist channel (and for last too)
+			chromaSubsamleV: 2,
+			inColorSpace: JCS_CMYK,
+			outColorSpace: JCS_YCCK,
 		})
 
 const rgbColorSpaces = [
@@ -169,6 +191,7 @@ for (const [inColorSpace, outColorSpace] of [
 		name: 'color spaces\nwith conversion',
 		inColorSpace,
 		outColorSpace,
+		...(outColorSpace === JCS_GRAYSCALE ? { progression: false } : {}),
 	})
 
 tests.push({
@@ -201,8 +224,7 @@ const mozJpegPromise = loadWebModule({
 	let prevNameCell = null
 
 	testsTable.onmouseover = e => {
-		const row = e.target instanceof HTMLElement && e.target.closest('tr')
-		const imgWrap = row && row.querySelector('.result-image .wrap')
+		const imgWrap = e.target instanceof Image && e.target.closest('.wrap')
 		if (imgWrap) imgWrap.appendChild(canvas)
 	}
 	testsTable.onmouseout = e => {
@@ -210,6 +232,7 @@ const mozJpegPromise = loadWebModule({
 	}
 
 	for (const test of tests) {
+		/** @type {ReturnType<typeof baseCFG>} */
 		const cfg = Object.assign(baseCFG(), test)
 
 		const inChannels = getColorSpaceChannelCount(cfg.inColorSpace)
@@ -226,9 +249,14 @@ const mozJpegPromise = loadWebModule({
 		mozJpeg.cinfo_set_quant_table(cfg.quantTableId)
 		mozJpeg.cinfo_set_quality(cfg.lumaQuality, cfg.chromaQuality)
 		mozJpeg.cinfo_set_optimize_coding(cfg.optimizeCoding)
-		mozJpeg.cinfo_set_chroma_subsample(cfg.chromaSubsamleH, cfg.chromaSubsamleV)
+		if (cfg.sampFactor === null) {
+			mozJpeg.cinfo_set_chroma_subsample(cfg.chromaSubsamleH, cfg.chromaSubsamleV)
+		} else {
+			const f = cfg.sampFactor
+			mozJpeg.cinfo_set_channel_samp_factor(f.component, f.h, f.v)
+		}
 		mozJpeg.cinfo_set_smoothing_factor(cfg.smoothingFactor)
-		if (cfg.progression) mozJpeg.cinfo_disable_progression()
+		if (!cfg.progression) mozJpeg.cinfo_disable_progression()
 		if (cfg.trellisNumLoops !== 0)
 			mozJpeg.cinfo_set_trellis(
 				cfg.trellisNumLoops,
@@ -269,7 +297,15 @@ const mozJpegPromise = loadWebModule({
 		const items = []
 		for (const key in baseCFG()) {
 			if (key !== 'name' && key in test)
-				items.push(key + ': ' + (key.endsWith('ColorSpace') ? colorSpaceNames[cfg[key]] : cfg[key]))
+				items.push(
+					key +
+						': ' +
+						(key.endsWith('ColorSpace')
+							? colorSpaceNames[cfg[key]]
+							: key === 'sampFactor'
+							? JSON.stringify(cfg[key])
+							: cfg[key]),
+				)
 		}
 		pre.textContent = items.length === 0 ? '<default>' : items.join('\n')
 		infoCell.appendChild(pre)

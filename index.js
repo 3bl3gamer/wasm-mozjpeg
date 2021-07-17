@@ -1,6 +1,5 @@
-import { JCS_CMYK, JCS_YCbCr, JCS_YCCK } from './const.js'
 import { JCS_EXT_RGBA } from './const.js'
-import { getString, putString, simpleSprintf, simpleSscanf } from './utils.js'
+import { getString, putString, simpleSprintf } from './utils.js'
 
 export * from './const.js'
 
@@ -18,19 +17,64 @@ const OUT_IMG_FILE_PTR = 10042
  * @prop {WebAssembly.Instance} instance
  * @prop {WebAssembly.Memory} memory
  * @prop {(start:Pointer, length:number) => Uint8Array} getMemoryUint8View
- * @prop {(start:Pointer, length:number) => void} onImgChunk - called when next JPEG file chunk is ready an must be copied out from WASM memory
- * @prop {(width:number, height:number, in_color_space:InColorSpace, channels:number) => Pointer} init_compress - initialize and set default MozJPEG settings. Must be called before cinfo_* funcs.
+ * @prop {(start:Pointer, length:number) => void} onImgChunk
+ *   Called when next JPEG file chunk is ready an must be copied out from WASM memory.
+ *
+ * @prop {(width:number, height:number, in_color_space:InColorSpace, channels:number) => Pointer} init_compress
+ *   Initializes and sets default MozJPEG settings. Must be called before cinfo_* funcs.
+ *
  * @prop {(value:OutColorSpace) => void} cinfo_set_out_color_space
- * @prop {(value:number) => void} cinfo_set_quant_table - set quant table index (3 by default, more info at https://github.com/mozilla/mozjpeg/blob/master/README-mozilla.txt#L171-L186)
- * @prop {(value:boolean) => void} cinfo_set_optimize_coding - compute optimal Huffman coding tables (true by default, more info at https://github.com/mozilla/mozjpeg/blob/master/libjpeg.txt)
- * @prop {(value:number) => void} cinfo_set_smoothing_factor - image smoothing (1-100, 0 by default)
- * @prop {(num_loops:number, use_multipass:boolean, optimize_zero_blocks:boolean, optimize_table:boolean) => void} cinfo_set_trellis - configures Trellis quantisation passes (slower, slight better quality, more info at https://github.com/mozilla/mozjpeg/blob/master/README-mozilla.txt)
- * @prop {(luma_quality:number, chroma_quality:number) => void} cinfo_set_quality - set luma (Y) and chroma (Cb,Cr) quality (0-100; if chroma is set to -1, the luma value will be used)
- * @prop {(h_samp_factor:number, v_samp_factor:number) => void} cinfo_set_chroma_subsample - downscale chroma channels (Cb and Cr) by `factor` times (2x2 by default if quality < 80, 2x1 if quality < 90, 1x1 otherwise)
- * @prop {() => void} cinfo_disable_progression - output regular (sequential) JPEG (will be progressive by default)
- * @prop {() => void} start_compress - start compression, get ready to accept lines. Must be called after cinfo_* funcs (if any).
- * @prop {() => boolean} write_scanlines - send lines (one line currently) to compressor. Must be called for all image lines after start_compress().
- * @prop {() => void} finish_compress - complete the compression cycle (write out remainig data). Must be called after write_scanlines() calls.
+ *   Sets output color spaces, see const.js for possible values.
+ *
+ * @prop {(value:number) => void} cinfo_set_quant_table
+ *   Sets quant table index (3 by default,
+ *   more info at https://github.com/mozilla/mozjpeg/blob/master/README-mozilla.txt#L171-L186).
+ *
+ * @prop {(value:boolean) => void} cinfo_set_optimize_coding
+ *   Computes optimal Huffman coding tables (true by default,
+ *   more info at https://github.com/mozilla/mozjpeg/blob/master/libjpeg.txt).
+ *
+ * @prop {(value:number) => void} cinfo_set_smoothing_factor
+ *   Sets image smoothing (1-100, 0 by default).
+ *
+ * @prop {(num_loops:number, use_multipass:boolean, optimize_zero_blocks:boolean, optimize_table:boolean) => void} cinfo_set_trellis
+ *   Configures Trellis quantisation passes (slower, slight better quality,
+ *   more info at https://github.com/mozilla/mozjpeg/blob/master/README-mozilla.txt).
+ *
+ * @prop {(luma_quality:number, chroma_quality:number) => void} cinfo_set_quality
+ *   Sets luma (Y) and chroma (Cb,Cr) quality (0-100; if chroma is set to -1, the luma value will be used).
+ *
+ *   For quality >= 80 sets chroma subsample to 2x1, for qualiry >= 90 - to 1x1.
+ *   This can be overwritten by cinfo_set_chroma_subsample().
+ *
+ *   Useful for regular YCbCr (default) or YCCK output colorspaces.
+ *   For other colorspaces chroma value is ignored.
+ *
+ * @prop {(h_samp_factor:number, v_samp_factor:number) => void} cinfo_set_chroma_subsample
+ *   Sets chroma channels downscaling (Cb and Cr) by `factor` times (2x2 by default).
+ *
+ *   Useful for regular (and default) YCbCr output colorspace.
+ *   For other color spaces more general cinfo_set_channel_samp_factor() should be more useful;
+ *
+ * @prop {(component:number, h_samp_factor:number, v_samp_factor:number) => void} cinfo_set_channel_samp_factor
+ *   Sets sampling factor for `component`.
+ *
+ *   Note: larger sampling factors indicate a higher-resolution component. Factor 2x2 for YCbCr image means
+ *   than Y component will me 2x2=4 times larger than Cb and Cr (they will be downscaled).
+ *
+ *   For example, `cinfo_set_channel_samp_factor(0, 2, 1)` is equivalent to `cinfo_set_chroma_subsample(2, 1)`.
+ *
+ * @prop {() => void} cinfo_disable_progression
+ *   Configures to output regular (sequential) JPEG (progressive is default).
+ *
+ * @prop {() => void} start_compress
+ *   Starts compression, gets ready to accept lines. Must be called after cinfo_* funcs (if any).
+ *
+ * @prop {() => boolean} write_scanlines
+ *   Sends lines (one line currently) to compressor. Must be called for all image lines after start_compress().
+ *
+ * @prop {() => void} finish_compress
+ *   Completes the compression cycle (writes out remainig data). Must be called after write_scanlines() calls.
  */
 
 /**
@@ -143,10 +187,6 @@ export async function loadModule(loadFunc, opts) {
 				// console.log('siprintf', arguments, getString(memBuf, formatPtr))
 				const str = simpleSprintf(memBuf, formatPtr, argsPtr)
 				return putString(memBuf, strPtr, str)
-			},
-			sscanf(bufPtr, formatPtr, argsPtr) {
-				// console.log('sscanf', arguments)
-				return simpleSscanf(memBuf, bufPtr, formatPtr, argsPtr)
 			},
 			math_pow: Math.pow,
 			after_memory_grow(newPages, lastAllocSize) {

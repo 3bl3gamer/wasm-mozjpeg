@@ -1,3 +1,17 @@
+diff --git a/cdjpeg.h b/cdjpeg.h
+index fcce3590..fc9af865 100644
+--- a/cdjpeg.h
++++ b/cdjpeg.h
+@@ -129,6 +129,9 @@ EXTERN(boolean) read_quant_tables(j_compress_ptr cinfo, char *filename,
+ EXTERN(boolean) read_scan_script(j_compress_ptr cinfo, char *filename);
+ EXTERN(boolean) set_quality_ratings(j_compress_ptr cinfo, char *arg,
+                                     boolean force_baseline);
++EXTERN(void) set_quality_ratings_simple(j_compress_ptr cinfo,
++                                        float luma_quality, float chroma_quality,
++                                        boolean force_baseline);
+ EXTERN(boolean) set_quant_slots(j_compress_ptr cinfo, char *arg);
+ EXTERN(boolean) set_sample_factors(j_compress_ptr cinfo, char *arg);
+ 
 diff --git a/jcmarker.c b/jcmarker.c
 index c2a8e408..f324a604 100644
 --- a/jcmarker.c
@@ -68,3 +82,30 @@ index fb3a9cf4..2c5b3d47 100644
  
  /* Encoder capability options: */
  
+diff --git a/rdswitch.c b/rdswitch.c
+index 77b2adfa..998548aa 100644
+--- a/rdswitch.c
++++ b/rdswitch.c
+@@ -567,6 +567,22 @@ set_quality_ratings (j_compress_ptr cinfo, char *arg, boolean force_baseline)
+   return TRUE;
+ }
+ 
++// Simplified version of set_quality_ratings:
++// it accepts exactly 2 values, uses no defaults, does not rely on sscanf
++// and does not alter sample factors for high qualities.
++GLOBAL(void)
++set_quality_ratings_simple(j_compress_ptr cinfo, float luma_quality, float chroma_quality, boolean force_baseline) {
++  for (int tblno = 0; tblno < NUM_QUANT_TBLS; tblno++) {
++    float val = tblno==0 ? luma_quality : chroma_quality;
++#if JPEG_LIB_VERSION >= 70
++    cinfo->q_scale_factor[tblno] = jpeg_float_quality_scaling(val);
++#else
++    q_scale_factor[tblno] = jpeg_float_quality_scaling(val);
++#endif
++  }
++  jpeg_default_qtables(cinfo, force_baseline);
++}
++
+ 
+ GLOBAL(boolean)
+ set_quant_slots (j_compress_ptr cinfo, char *arg)
