@@ -12,12 +12,12 @@ Inspired by [cyrilwanner/wasm-codecs](https://github.com/cyrilwanner/wasm-codecs
 
 ## Features
 
-* 321 KiB before gzip (wasm + js), 34 KiB after;
+* 208 KiB before gzip (wasm + js), 34 KiB after;
 * TypeScript definitions;
 * node and browser support;
 * different [input color spaces](https://github.com/3bl3gamer/wasm-mozjpeg/blob/master/const.js);
-* `grayscale`, `RGB`, `YCbCr`, `CMYK` and `YCCK` output color spaces (not all in->out transformations supported, see [mozjpeg/libjpeg.txt](https://github.com/mozilla/mozjpeg/blob/master/libjpeg.txt#L1388-L1391));
-* disabled arithmetic coding (smaller bundle);
+* `grayscale`, `RGB`, `YCbCr`, `CMYK` and `YCCK` output color spaces (not all in->out transformations supported, see [mozjpeg/libjpeg.txt](https://github.com/mozilla/mozjpeg/blob/9b8d11f05e3ae4541ce5251f0e5c20c4cb8733b7/libjpeg.txt#L1529-L1532));
+* disabled arithmetic coding, 12-bit and 16-bit modes (smaller bundle);
 * sequential (aka "bump") memory allocator (smaller bundle, +30% memory usage);
 * no build-in worker.
 
@@ -107,6 +107,8 @@ More info in [index.d.ts](https://github.com/3bl3gamer/wasm-mozjpeg/blob/master/
 
 
 ## Bulding
+
+`git submodule update --init`
 
 `./build_wasm.sh` — rebuilds `mozjpeg.wasm`, generates `const.js`, requires `Emscripten`.
 

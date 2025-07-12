@@ -86,7 +86,7 @@ function stripBufChannels(buf, channels) {
 function baseCFG() {
 	return {
 		name: '',
-		forceWidth: null,
+		forceWidth: /**@type {null|number}*/ (null),
 		inColorSpace: JCS_EXT_RGBA,
 		outColorSpace: JCS_YCbCr,
 		quantTableId: 3,
@@ -95,7 +95,7 @@ function baseCFG() {
 		optimizeCoding: true,
 		chromaSubsamleH: 2,
 		chromaSubsamleV: 2,
-		sampFactor: null,
+		sampFactor: /**@type {null|{ component: number, h: number, v: number }}*/ (null),
 		smoothingFactor: 0,
 		progression: true,
 		trellisNumLoops: 0,

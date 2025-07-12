@@ -17,6 +17,17 @@ FILE *const stdout = (FILE *)1;
 FILE *const stderr = (FILE *)2;
 FILE *const outImgFile = (FILE *)10042;
 
+// Since 12-bit library building is disabled (see CMakeLists.txt),
+// but mode checks (cinfo->data_precision == 12) are still there,
+// we need to put the definitions somewhere otherwise wasm static checker
+// will complain about missing function (which will be never called).
+void j12init_color_converter(j_compress_ptr cinfo) {}
+void j12init_downsampler(j_compress_ptr cinfo) {}
+void j12init_c_prep_controller(j_compress_ptr cinfo, boolean need_full_buffer) {}
+void j12init_forward_dct(j_compress_ptr cinfo) {}
+void j12init_c_coef_controller(j_compress_ptr cinfo, boolean need_full_buffer) {}
+void j12init_c_main_controller(j_compress_ptr cinfo, boolean need_full_buffer) {}
+
 struct jpeg_error_mgr jerr;
 struct jpeg_compress_struct cinfo;
 uint8_t *in_row_buffer;

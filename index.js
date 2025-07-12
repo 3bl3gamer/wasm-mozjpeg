@@ -113,13 +113,13 @@ export function loadNodeModule(fs, opts) {
 // /**
 //  * For experiments/testing/debugging. Generate from .wasm-file with:
 //  *   echo -n 'export ' > mozjpeg.wasm.js
-//  *   wasm2js --emscripten mozjpeg.wasm >> mozjpeg.wasm.js
+//  *   wasm2js --emscripten --all-features mozjpeg.wasm >> mozjpeg.wasm.js
 //  * @param {ModuleOptions|null} [opts]
 //  * @returns {Promise<MozJPEG>}
 //  */
 // export function loadJSModule(opts) {
 // 	return loadModule(async importObject => {
-// 		const exports = (await import('./mozjpeg.wasm.js')).instantiate(importObject.env)
+// 		const exports = (await import('./mozjpeg.wasm.js')).instantiate(importObject)
 // 		return { instance: { exports }, module: {} }
 // 	})
 // }
@@ -148,7 +148,9 @@ export async function loadModule(loadFunc, opts) {
 		} else if (filePtr === STDERR_PTR) {
 			lastStderrMsg = string
 			onStderr(string)
-		} else throw new Error(`wrong print file: ${filePtr}`)
+		} else {
+			throw new Error(`wrong print file: ${filePtr}`)
+		}
 	}
 
 	const importObject = {
@@ -185,6 +187,11 @@ export async function loadModule(loadFunc, opts) {
 			},
 			siprintf(strPtr, formatPtr, argsPtr) {
 				// console.log('siprintf', arguments, getString(memBuf, formatPtr))
+				const str = simpleSprintf(memBuf, formatPtr, argsPtr)
+				return putString(memBuf, strPtr, str)
+			},
+			snprintf(strPtr, size, formatPtr, argsPtr) {
+				// console.log('snprintf', arguments, getString(memBuf, formatPtr))
 				const str = simpleSprintf(memBuf, formatPtr, argsPtr)
 				return putString(memBuf, strPtr, str)
 			},
