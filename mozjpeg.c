@@ -52,7 +52,10 @@ void *init_compress(int width, int height, int in_color_space, int channels)
 	cinfo.in_color_space = in_color_space;
 	jpeg_set_defaults(&cinfo);
 
-	return in_row_buffer = malloc(width * channels);
+	in_row_buffer = malloc(width * channels);
+	if (!in_row_buffer)
+		fail("not enough memory");
+	return in_row_buffer;
 }
 
 EMSCRIPTEN_KEEPALIVE
