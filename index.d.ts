@@ -88,11 +88,22 @@ export function loadNodeModule(fs: Promise<ReadableFS> | ReadableFS, opts?: Modu
 /**
  * Load module by calling external `loadFunc`.
  * Actually, `loadModule` will just init the WASM module that came from `loadFunc`.
- * @param {(importObject:Object) => Promise<WebAssembly.WebAssemblyInstantiatedSource>} loadFunc
+ *
+ * `loadFunc` should return promise with `WebAssembly.Instance`, usually just `WebAssembly.WebAssemblyInstantiatedSource`,
+ * for example:
+ *   ```
+ *   return WebAssembly.instantiateStreaming(fetch(filepath), importObject)
+ *   return WebAssembly.instantiate(ArrayBuffer, importObject)
+ *   return { instance: await WebAssembly.instantiate(WebAssembly.Module, importObject) }
+ *   ```
+ *
+ * @param {(importObject:Object) => Promise<{instance: WebAssembly.Instance}>} loadFunc
  * @param {ModuleOptions|null} [opts]
  * @returns {Promise<MozJPEG>}
  */
-export function loadModule(loadFunc: (importObject: any) => Promise<WebAssembly.WebAssemblyInstantiatedSource>, opts?: ModuleOptions | null): Promise<MozJPEG>;
+export function loadModule(loadFunc: (importObject: any) => Promise<{
+    instance: WebAssembly.Instance;
+}>, opts?: ModuleOptions | null): Promise<MozJPEG>;
 /**
  * @typedef {{startPtr:Pointer, length:number}} BufferLocation
  */
